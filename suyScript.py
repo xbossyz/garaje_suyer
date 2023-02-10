@@ -252,4 +252,4 @@ if __name__ == '__main__':
 		sess=conexionMoodle(url,uname,upass)
 		ExecCommands(url,sess,command)
 	else:
-		print("[+] Escoja un modo permitido"
+		print("[+] Escoja un modo permitido")

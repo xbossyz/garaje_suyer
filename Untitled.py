@@ -201,8 +201,8 @@ if __name__ == '__main__':
                                 ▌
 			
 	
-																			""" + Color.END + Color.GREEN	+"""
-						***CVE 2020 14321*** 
+		""" + Color.END + Color.RED	+"""																	
+						***CVE 2020 14321***    """ + Color.END + Color.YELLOW	+ """
     
     
     

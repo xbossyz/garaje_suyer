@@ -18,6 +18,8 @@
 # BriefExplanation: A malicious plugin that allows remote command execution is build&uploaded to the moodle site.
 
 
+#!/usr/bin/python3
+
 import random
 import string
 import os
